@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Una carta especial para Theo</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@500;700&family=Great+Vibes&family=Montserrat:wght@300;400;600&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #ffffff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .font-cursive {
+            font-family: 'Great Vibes', cursive;
+        }
+
+        .font-handwriting {
+            font-family: 'Dancing Script', cursive;
+        }
+
+        /* Ambient floating hearts canvas */
+        #particles-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Perspective for 3D Envelope */
+        .perspective-container {
+            perspective: 1000px;
+        }
+
+        /* Envelope Styles */
+        .envelope-wrapper {
+            position: relative;
+            width: 320px;
+            height: 220px;
+            background-color: #fce7f3;
+            border-radius: 12px;
+            box-shadow: 0 20px 35px rgba(225, 29, 72, 0.25), 0 0 15px rgba(245, 158, 11, 0.3);
+            cursor: pointer;
+            transition: transform 0.4s ease, box-shadow 0.4s ease;
+            transform-style: preserve-3d;
+        }
+
+        @media (min-width: 640px) {
+            .envelope-wrapper {
+                width: 440px;
+                height: 290px;
+            }
+        }
+
+        .envelope-wrapper:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 25px 40px rgba(225, 29, 72, 0.35), 0 0 25px rgba(245, 158, 11, 0.5);
+        }
+
+        /* Flap animation styles */
+        .envelope-flap {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 0;
+            height: 0;
+            border-left: 160px solid transparent;
+            border-right: 160px solid transparent;
+            border-top: 120px solid #fbcfe8;
+            transform-origin: top;
+            transition: transform 0.6s ease-in-out, z-index 0.6s ease-in-out;
+            z-index: 4;
+            filter: drop-shadow(0 4px 6px rgba(190, 24, 93, 0.15));
+        }
+
+        @media (min-width: 640px) {
+            .envelope-flap {
+                border-left-width: 220px;
+                border-right-width: 220px;
+                border-top-width: 155px;
+            }
+        }
+
+        .envelope-wrapper.open .envelope-flap {
+            transform: rotateX(180deg);
+            z-index: 1;
+        }
+
+        /* Envelope Pocket (Sides and Bottom) */
+        .envelope-pocket {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 3;
+            pointer-events: none;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .pocket-left {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 0;
+            border-bottom: 220px solid #f472b6;
+            border-right: 180px solid transparent;
+        }
+
+        .pocket-right {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            width: 0;
+            height: 0;
+            border-bottom: 220px solid #f472b6;
+            border-left: 180px solid transparent;
+        }
+
+        .pocket-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 0;
+            border-bottom: 125px solid #fb7185;
+            border-left: 160px solid transparent;
+            border-right: 160px solid transparent;
+        }
+
+        @media (min-width: 640px) {
+            .pocket-left { border-bottom-width: 290px; border-right-width: 240px; }
+            .pocket-right { border-bottom-width: 290px; border-left-width: 240px; }
+            .pocket-bottom { border-bottom-width: 165px; border-left-width: 220px; border-right-width: 220px; }
+        }
+
+        /* Gold Stamp Seal */
+        .gold-seal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -30%);
+            width: 55px;
+            height: 55px;
+            background: radial-gradient(circle, #fef08a 0%, #eab308 60%, #ca8a04 100%);
+            border-radius: 50%;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2), inset 0 0 8px rgba(255, 255, 255, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5;
+            transition: transform 0.5s ease, opacity 0.4s ease;
+            border: 2px solid #fef9c3;
+        }
+
+        .envelope-wrapper.open .gold-seal {
+            opacity: 0;
+            transform: translate(-50%, -30%) scale(0.5);
+            pointer-events: none;
+        }
+
+        /* Inside Preview Card */
+        .card-inside {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            height: 85%;
+            background-color: #fff9fa;
+            border-radius: 8px;
+            z-index: 2;
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            border: 1px solid #fecdd3;
+        }
+
+        /* Modal / Full View Card */
+        .letter-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+            background-color: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(8px);
+        }
+
+        .letter-modal.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .letter-content {
+            background: #fff9fa;
+            background-image: 
+                radial-gradient(#fecdd3 0.75px, transparent 0.75px),
+                linear-gradient(to bottom, rgba(253, 242, 248, 0.5), rgba(255, 241, 242, 0.8));
+            background-size: 15px 15px, 100% 100%;
+            max-width: 650px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border-radius: 20px;
+            border: 2px solid #fbcfe8;
+            box-shadow: 0 25px 50px -12px rgba(225, 29, 72, 0.35), 0 0 0 8px rgba(255, 255, 255, 0.5);
+            transform: scale(0.8) translateY(30px);
+            transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+
+        .letter-modal.active .letter-content {
+            transform: scale(1) translateY(0);
+        }
+
+        /* Golden Border Ornament */
+        .gold-border-frame {
+            border: 2px solid transparent;
+            border-image: linear-gradient(to bottom right, #fde047, #eab308, #ca8a04, #fef08a) 1;
+            position: relative;
+        }
+
+        /* Scrollbar customization for letter */
+        .letter-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        .letter-content::-webkit-scrollbar-track {
+            background: #fce7f3;
+            border-radius: 10px;
+        }
+        .letter-content::-webkit-scrollbar-thumb {
+            background: #f472b6;
+            border-radius: 10px;
+        }
+
+        /* Pulsing Glow Effect */
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 15px rgba(244, 114, 182, 0.4), 0 0 30px rgba(251, 207, 232, 0.6); }
+            50% { box-shadow: 0 0 25px rgba(244, 114, 182, 0.8), 0 0 45px rgba(251, 207, 232, 0.9); }
+        }
+
+        .pulse-glow {
+            animation: pulseGlow 3s infinite ease-in-out;
+        }
+
+        /* Shimmer animation for text/borders */
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        .gold-shimmer-text {
+            background: linear-gradient(90deg, #b45309 0%, #fbbf24 50%, #b45309 100%);
+            background-size: 200% auto;
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: shimmer 4s linear infinite;
+        }
+
+        /* Floating decoration elements */
+        .floating-element {
+            animation: float 4s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(3deg); }
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen items-center justify-between p-4 sm:p-6 relative">
+
+    <!-- Canvas for Floating Hearts Particles -->
+    <canvas id="particles-canvas"></canvas>
+
+    <!-- Top Navigation / Ambient Controls -->
+    <header class="w-full max-w-4xl flex justify-between items-center z-10 py-2">
+        <div class="flex items-center space-x-2">
+            <span class="text-rose-600 text-xl font-bold font-cursive tracking-wide">for theito</span>
+            <i class="fa-solid fa-sparkles text-amber-400 text-sm animate-pulse"></i>
+        </div>
+
+        <div class="flex items-center space-x-3">
+            <!-- Audio Toggle Button -->
+            <button id="music-toggle" class="bg-rose-50 hover:bg-rose-100 text-rose-600 backdrop-blur-md px-4 py-2 rounded-full shadow-md text-xs sm:text-sm font-semibold transition flex items-center gap-2 border border-rose-200">
+                <i id="music-icon" class="fa-solid fa-compact-disc text-rose-500"></i>
+                <span id="music-text">musica</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content Area: Sealed Envelope -->
+    <main class="flex-1 flex flex-col items-center justify-center z-10 my-8 w-full max-w-xl">
+        
+        <!-- Instruction Label -->
+        <div id="instruction" class="mb-8 text-center transition-all duration-500 transform">
+            <h1 class="text-3xl sm:text-4xl md:text-5xl font-cursive text-rose-800 font-bold mb-2 drop-shadow-sm">
+                Te amo, Theito
+            </h1>
+            <p class="text-rose-700/90 text-sm sm:text-base font-medium flex items-center justify-center gap-2">
+                <i class="fa-solid fa-hand-pointer animate-bounce text-rose-500"></i>
+                Haz clic en el sobre dorado para abrirlo
+            </p>
+        </div>
+
+        <!-- Envelope Container -->
+        <div class="perspective-container">
+            <div id="envelope" class="envelope-wrapper pulse-glow">
+                
+                <!-- Envelope Flap (Top triangle) -->
+                <div class="envelope-flap"></div>
+
+                <!-- Gold Wax Seal -->
+                <div class="gold-seal">
+                    <i class="fa-solid fa-heart text-amber-100 text-xl drop-shadow"></i>
+                </div>
+
+                <!-- Card Preview Sliding Out -->
+                <div class="card-inside flex flex-col items-center justify-center p-4 text-center">
+                    <i class="fa-solid fa-heart-pulse text-rose-400 text-3xl mb-2 animate-pulse"></i>
+                    <p class="font-handwriting text-rose-800 text-lg sm:text-xl">Abriendo con cariño...</p>
+                </div>
+
+                <!-- Envelope Pocket Overlay -->
+                <div class="envelope-pocket">
+                    <div class="pocket-left"></div>
+                    <div class="pocket-right"></div>
+                    <div class="pocket-bottom"></div>
+                </div>
+
+                <!-- Envelope Decorative Stamp (Top Right) -->
+                <div class="absolute top-3 right-3 z-10 border-2 border-dashed border-rose-300 rounded p-1 bg-white/40">
+                    <i class="fa-solid fa-stamp text-rose-400 text-sm"></i>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="z-10 text-center py-4 text-rose-800/80 text-xs sm:text-sm font-medium">
+        hecho con <i class="fa-solid fa-heart text-rose-500 animate-ping"></i> 
+    </footer>
+
+    <!-- Full Screen Letter Modal -->
+    <div id="letter-modal" class="letter-modal">
+        <div class="letter-content p-6 sm:p-10 relative">
+            
+            <!-- Close Button -->
+            <button id="close-letter-btn" class="absolute top-4 right-4 text-rose-400 hover:text-rose-600 bg-rose-100 hover:bg-rose-200 rounded-full w-9 h-9 flex items-center justify-center transition shadow-sm border border-rose-200 z-20" title="Guardar la carta">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <!-- Decorative Gold Frame -->
+            <div class="gold-border-frame p-4 sm:p-8 rounded-xl bg-white/60 backdrop-blur-sm">
+
+                <!-- Header Flowers / Hearts -->
+                <div class="flex justify-center items-center gap-3 mb-6">
+                    <i class="fa-solid fa-spa text-amber-500/80 text-lg transform -scale-x-100"></i>
+                    <i class="fa-solid fa-heart text-rose-500 text-2xl floating-element"></i>
+                    <i class="fa-solid fa-spa text-amber-500/80 text-lg"></i>
+                </div>
+
+                <!-- Letter Title -->
+                <h2 class="text-3xl sm:text-4xl md:text-5xl font-cursive text-center gold-shimmer-text mb-6 font-bold">
+                    Querido gordete flan
+                </h2>
+
+                <!-- Main Letter Body -->
+                <div class="space-y-4 text-rose-950 font-handwriting text-xl sm:text-2xl leading-relaxed text-left sm:text-justify">
+                    <p>
+                        con todo esto, mi intencion es decirte lo unico y especial que eres para mi, no por nada actualmente eres una de las personas con la que me siento mas libremente de hablar, eres una persona que admiro y amo mucho.
+                    </p>
+                    <p>
+                        te lo agradezco todo, que estes a mi lado, que me escuches y todas esas risas que me scas de tus boludeces mas boludas de lo boludo, ya cuando te digo algo ni se que respuesta esperar, si algo reflexivo que me cambie la vida o algo que me haga soltar la mayor carcajada que nunca antes di.
+                    </p>
+                    <p class="bg-rose-100/60 p-4 rounded-xl border-l-4 border-rose-400 italic text-rose-900 font-sans text-sm sm:text-base">
+                     eres aguien realmente especial.
+            
+                    </p>
+                </div>
+
+                <!-- Letter Signature -->
+                <div class="mt-8 pt-4 border-t border-rose-200/80 flex flex-col items-end">
+                    <p class="font-cursive text-2xl sm:text-3xl text-rose-700 font-bold">
+                        con todo mi cariño,
+                    </p>
+                    <p class="font-handwriting text-lg text-amber-700 mt-1 flex items-center gap-1">
+                        pochi. <i class="fa-solid fa-sparkles text-amber-400 text-xs"></i>
+                   </p>
+                </div>
+
+                <!-- Bottom Interactive Action Buttons inside Modal -->
+                <div class="mt-8 flex flex-wrap justify-center gap-3 pt-4 border-t border-rose-100">
+                    <button id="reopen-btn" class="bg-rose-500 hover:bg-rose-600 text-white font-medium px-5 py-2.5 rounded-full shadow-lg hover:shadow-rose-300 transition text-sm flex items-center gap-2 transform active:scale-95">
+                        <i class="fa-solid fa-rotate-left"></i> cerrar
+                    </button>
+                    <button id="burst-hearts-btn" class="bg-amber-400 hover:bg-amber-500 text-rose-950 font-medium px-5 py-2.5 rounded-full shadow-lg hover:shadow-amber-200 transition text-sm flex items-center gap-2 transform active:scale-95">
+                        <i class="fa-solid fa-heart-circle-bolt"></i> boton
+                    </button>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // DOM Elements
+        const envelope = document.getElementById('envelope');
+        const letterModal = document.getElementById('letter-modal');
+        const closeLetterBtn = document.getElementById('close-letter-btn');
+        const reopenBtn = document.getElementById('reopen-btn');
+        const burstHeartsBtn = document.getElementById('burst-hearts-btn');
+        const instruction = document.getElementById('instruction');
+        const musicToggle = document.getElementById('music-toggle');
+        const musicIcon = document.getElementById('music-icon');
+        const musicText = document.getElementById('music-text');
+
+        // Web Audio API Synthesizer inspired by TV Girl - Lovers Rock
+        let audioCtx = null;
+        let isPlayingMusic = false;
+        let musicTimer = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        // Warm chord note player for Lovers Rock vibe
+        function playLoversRockChord(freqs, duration = 1.8) {
+            if (!audioCtx) return;
+            freqs.forEach(freq => {
+                try {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                    
+                    // Soft synth envelope
+                    gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.06, audioCtx.currentTime + 0.15);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                    
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    
+                    osc.start();
+                    osc.stop(audioCtx.currentTime + duration);
+                } catch (e) {
+                    console.error(e);
+                }
+            });
+        }
+
+        // Chime for opening envelope
+        function playChime(freq, duration = 1.5, type = 'sine') {
+            if (!audioCtx) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.01, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        function playOpenSound() {
+            initAudio();
+            if (!audioCtx) return;
+            const notes = [261.63, 329.63, 392.00, 523.25, 659.25];
+            notes.forEach((note, index) => {
+                setTimeout(() => playChime(note, 2.0, 'sine'), index * 120);
+            });
+        }
+
+        // Sequence replicating TV Girl's "Lovers Rock" chord progression pattern
+        function toggleMusic() {
+            initAudio();
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            if (isPlayingMusic) {
+                clearInterval(musicTimer);
+                isPlayingMusic = false;
+                musicIcon.className = "fa-solid fa-compact-disc text-rose-500";
+                musicText.textContent = "musica";
+                musicToggle.classList.remove('bg-rose-500', 'text-white');
+                musicToggle.classList.add('bg-rose-50', 'text-rose-600');
+            } else {
+                isPlayingMusic = true;
+                musicIcon.className = "fa-solid fa-compact-disc text-white animate-spin";
+                musicText.textContent = "Reproduciendo Lovers Rock";
+                musicToggle.classList.remove('bg-rose-50', 'text-rose-600');
+                musicToggle.classList.add('bg-rose-500', 'text-white');
+
+                // Lovers Rock chord progression frequencies (Dbmaj7 - Fm - Bbm - Gb)
+                const chords = [
+                    [277.18, 349.23, 415.30, 523.25], // Dbmaj7
+                    [349.23, 415.30, 523.25, 659.25], // Fm
+                    [233.08, 277.18, 349.23, 415.30], // Bbm
+                    [185.00, 233.08, 277.18, 349.23]  // Gb
+                ];
+
+                let step = 0;
+                playLoversRockChord(chords[0], 2.2);
+
+                musicTimer = setInterval(() => {
+                    step = (step + 1) % chords.length;
+                    playLoversRockChord(chords[step], 2.2);
+                }, 2200);
+            }
+        }
+
+        musicToggle.addEventListener('click', toggleMusic);
+
+        // Canvas Ambient Floating Hearts Background
+        const canvas = document.getElementById('particles-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class HeartParticle {
+            constructor() {
+                this.reset();
+            }
+
+            reset() {
+                this.x = Math.random() * canvas.width;
+                this.y = canvas.height + 20 + Math.random() * 50;
+                this.size = Math.random() * 14 + 8;
+                this.speedY = Math.random() * 1.2 + 0.6;
+                this.speedX = Math.sin(Math.random() * Math.PI) * 0.8;
+                this.opacity = Math.random() * 0.5 + 0.3;
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotSpeed = (Math.random() - 0.5) * 0.02;
+                this.color = `hsla(${330 + Math.random() * 30}, 90%, ${70 + Math.random() * 20}%, ${this.opacity})`;
+            }
+
+            update() {
+                this.y -= this.speedY;
+                this.x += Math.sin(this.y * 0.01) * 0.5;
+                this.rotation += this.rotSpeed;
+
+                if (this.y < -30) {
+                    this.reset();
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                ctx.fillStyle = this.color;
+                
+                // Draw heart shape
+                ctx.beginPath();
+                const topCurveHeight = this.size * 0.3;
+                ctx.moveTo(0, topCurveHeight);
+                // Top left curve
+                ctx.bezierCurveTo(
+                    -this.size / 2, -topCurveHeight,
+                    -this.size, this.size / 3,
+                    0, this.size
+                );
+                // Top right curve
+                ctx.bezierCurveTo(
+                    this.size, this.size / 3,
+                    this.size / 2, -topCurveHeight,
+                    0, topCurveHeight
+                );
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        // Initialize heart particles
+        for (let i = 0; i < 35; i++) {
+            const p = new HeartParticle();
+            p.y = Math.random() * canvas.height; // scatter initial state
+            particles.push(p);
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        animateParticles();
+
+        // Confetti Fireworks Burst
+        function launchHeartConfetti() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 60,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#f472b6', '#fb7185', '#fef08a', '#fda4af', '#ffffff'],
+                    shapes: ['circle']
+                });
+            }
+        }
+
+        // Open Envelope Logic
+        function openEnvelope() {
+            if (envelope.classList.contains('open')) return;
+
+            playOpenSound();
+            envelope.classList.add('open');
+            instruction.style.opacity = '0';
+            instruction.style.transform = 'translateY(-10px)';
+
+            // Trigger confetti burst halfway through opening
+            setTimeout(() => {
+                launchHeartConfetti();
+            }, 400);
+
+            // Show full letter modal after envelope opens
+            setTimeout(() => {
+                letterModal.classList.add('active');
+            }, 900);
+        }
+
+        // Close Envelope Logic
+        function closeEnvelope() {
+            letterModal.classList.remove('active');
+            setTimeout(() => {
+                envelope.classList.remove('open');
+                instruction.style.opacity = '1';
+                instruction.style.transform = 'translateY(0)';
+            }, 400);
+        }
+
+        // Event Listeners
+        envelope.addEventListener('click', openEnvelope);
+        closeLetterBtn.addEventListener('click', closeEnvelope);
+        reopenBtn.addEventListener('click', closeEnvelope);
+
+        // Burst hearts button inside letter
+        burstHeartsBtn.addEventListener('click', () => {
+            launchHeartConfetti();
+            playChime(523.25, 1.0, 'sine');
+            setTimeout(() => playChime(659.25, 1.0, 'sine'), 150);
+        });
+
+        // Close modal when clicking dark backdrop outside letter
+        letterModal.addEventListener('click', (e) => {
+            if (e.target === letterModal) {
+                closeEnvelope();
+            }
+        });
+    </script>
+</body>
+</html>
